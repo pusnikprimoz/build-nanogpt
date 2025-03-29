@@ -15,16 +15,18 @@ from datasets import load_dataset # pip install datasets
 from tqdm import tqdm # pip install tqdm
 
 # ------------------------------------------
-local_dir = "edu_fineweb10B"
-remote_name = "sample-10BT"
+local_dir = "wikitext"
+remote_name = "wikitext-2-raw-v1" # name of the dataset on HuggingFace
 shard_size = int(1e8) # 100M tokens per shard, total of 100 shards
 
 # create the cache the local directory if it doesn't exist yet
 DATA_CACHE_DIR = os.path.join(os.path.dirname(__file__), local_dir)
 os.makedirs(DATA_CACHE_DIR, exist_ok=True)
 
+from datasets import load_dataset
+ 
 # download the dataset
-fw = load_dataset("HuggingFaceFW/fineweb-edu", name=remote_name, split="train")
+fw = load_dataset("Salesforce/wikitext", name=remote_name, split="train")
 
 # init the tokenizer
 enc = tiktoken.get_encoding("gpt2")
@@ -63,7 +65,7 @@ with mp.Pool(nprocs) as pool:
         else:
             # write the current shard and start a new one
             split = "val" if shard_index == 0 else "train"
-            filename = os.path.join(DATA_CACHE_DIR, f"edufineweb_{split}_{shard_index:06d}")
+            filename = os.path.join(DATA_CACHE_DIR, f"wikitext_{split}_{shard_index:06d}")
             # split the document into whatever fits in this shard; the remainder goes to next one
             remainder = shard_size - token_count
             progress_bar.update(remainder)
@@ -78,5 +80,5 @@ with mp.Pool(nprocs) as pool:
     # write any remaining tokens as the last shard
     if token_count != 0:
         split = "val" if shard_index == 0 else "train"
-        filename = os.path.join(DATA_CACHE_DIR, f"edufineweb_{split}_{shard_index:06d}")
+        filename = os.path.join(DATA_CACHE_DIR, f"wikitext_{split}_{shard_index:06d}")
         write_datafile(filename, all_tokens_np[:token_count])
